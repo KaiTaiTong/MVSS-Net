@@ -221,7 +221,6 @@ def resnet(pretrained=False, layers=[3,4,6,3], backbone='resnet50', n_input=3, *
     # pretrain_dict = model_zoo.load_url(model_urls[backbone])
     pretrain_dict = torch.load('.cache/torch/hub/checkpoints/resnet50-19c8e357.pth')
 
-
     try:
         model.load_state_dict(pretrain_dict,strict=False)
     except:
@@ -299,7 +298,7 @@ class MVSSNet(ResNet50):
 
         self.erb_db_1 = ERB(256, self.num_class)
         self.erb_db_2 = ERB(512, self.num_class)
-        self.erb_db_3 = ERB(1024, self.num_class)
+        # self.erb_db_3 = ERB(1024, self.num_class)
         # self.erb_db_4 = ERB(2048, self.num_class)
 
         self.erb_trans_1 = ERB(self.num_class, self.num_class)
@@ -310,7 +309,7 @@ class MVSSNet(ResNet50):
             print("----------use sobel-------------")
             self.sobel_x1, self.sobel_y1 = get_sobel(256, 1)
             self.sobel_x2, self.sobel_y2 = get_sobel(512, 1)
-            self.sobel_x3, self.sobel_y3 = get_sobel(1024, 1)
+            # self.sobel_x3, self.sobel_y3 = get_sobel(1024, 1)
             # self.sobel_x4, self.sobel_y4 = get_sobel(2048, 1)
 
         if self.constrain:
@@ -318,10 +317,12 @@ class MVSSNet(ResNet50):
             self.noise_extractor = ResNet50(n_input=3, pretrained=True)
             self.constrain_conv = BayarConv2d(in_channels=1, out_channels=3, padding=2)
             # self.head = _DAHead(2048+2048, self.num_class, aux, **kwargs)
-            self.head = _DAHead(1024 + 1024, self.num_class, aux, **kwargs)
+            # self.head = _DAHead(1024 + 1024, self.num_class, aux, **kwargs)
+            self.head = _DAHead(512 + 512, self.num_class, aux, **kwargs)
         else:
             # self.head = _DAHead(2048, self.num_class, aux, **kwargs)
-            self.head = _DAHead(1024, self.num_class, aux, **kwargs)
+            # self.head = _DAHead(1024, self.num_class, aux, **kwargs)
+            self.head = _DAHead(512, self.num_class, aux, **kwargs)
 
     def forward(self, x):
 
@@ -330,40 +331,46 @@ class MVSSNet(ResNet50):
         input_ = x.clone()
         feature_map, _ = self.base_forward(input_)
         # c1, c2, c3, c4 = feature_map
-        c1, c2, c3, _ = feature_map  # only preserve 3 ResNet blocks
+        # c1, c2, c3, _ = feature_map  # only preserve 3 ResNet blocks
+        c1, c2, _, _ = feature_map  # only preserve 2 ResNet blocks
+
 
         if self.sobel:
+            # Only set last layer ReLU to be False
             res1 = self.erb_db_1(run_sobel(self.sobel_x1, self.sobel_y1, c1))
-            res1 = self.erb_trans_1(res1 + self.upsample(self.erb_db_2(run_sobel(self.sobel_x2, self.sobel_y2, c2))))
-            res1 = self.erb_trans_2(res1 + self.upsample_4(self.erb_db_3(run_sobel(self.sobel_x3, self.sobel_y3, c3))), relu=False)
+            res1 = self.erb_trans_1(res1 + self.upsample(self.erb_db_2(run_sobel(self.sobel_x2, self.sobel_y2, c2))), relu=False)
+            # res1 = self.erb_trans_2(res1 + self.upsample_4(self.erb_db_3(run_sobel(self.sobel_x3, self.sobel_y3, c3))), relu=False)
             # res1 = self.erb_trans_3(res1 + self.upsample_4(self.erb_db_4(run_sobel(self.sobel_x4, self.sobel_y4, c4))), relu=False)
 
         else:
             res1 = self.erb_db_1(c1)
-            res1 = self.erb_trans_1(res1 + self.upsample(self.erb_db_2(c2)))
-            res1 = self.erb_trans_2(res1 + self.upsample_4(self.erb_db_3(c3)), relu=False)
+            res1 = self.erb_trans_1(res1 + self.upsample(self.erb_db_2(c2)), relu=False)
+            # res1 = self.erb_trans_2(res1 + self.upsample_4(self.erb_db_3(c3)), relu=False)
             # res1 = self.erb_trans_3(res1 + self.upsample_4(self.erb_db_4(c4)), relu=False)
 
         if self.constrain:
             x = rgb2gray(x)
             x = self.constrain_conv(x)
             constrain_features, _ = self.noise_extractor.base_forward(x)
-            # constrain_feature = constrain_features[-1]   # [32, 2048, 8, 8]
 
             # constrain_features contains 4 ResNet blocks in NSB branch -> (256, 512, 1024, 2048)
             # We will only use the first 3.
             # Note: to extract the two set of feature maps from the two branches, extract
             # constrain_feature and c1,c2,c3... before concatenation for dual attention
 
-            constrain_feature = constrain_features[-2]      # [32, 1024, 8, 8]
+            # constrain_feature = constrain_features[-1]   # [32, 2048, 8, 8]
+            # constrain_feature = constrain_features[-2]      # [32, 1024, 8, 8]
+            constrain_feature = constrain_features[-3]      # [32, 512, 8, 8]
 
             # c4 = torch.cat([c4, constrain_feature], dim=1)  # [32, 4096, 8, 8]
-            c3 = torch.cat([c3, constrain_feature], dim=1)  # [32, 1024, 8, 8]
+            # c3 = torch.cat([c3, constrain_feature], dim=1)  # [32, 1024, 8, 8]
+            c2 = torch.cat([c2, constrain_feature], dim=1)  # [32, 512, 8, 8]
 
         outputs = []
 
         # x = self.head(c4)
-        x = self.head(c3)
+        # x = self.head(c3)
+        x = self.head(c2)
         x0 = F.interpolate(x[0], size, mode='bilinear', align_corners=True)
         outputs.append(x0)
 
