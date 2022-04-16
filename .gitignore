@@ -250,3 +250,6 @@ main.pdf
 # Data files
 CASIAv2/*
 
+# Pre-trained weights
+.cache/*
+
