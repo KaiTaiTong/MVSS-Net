@@ -218,7 +218,10 @@ def resnet(pretrained=False, layers=[3,4,6,3], backbone='resnet50', n_input=3, *
     """
     model = ResNet(Bottleneck, layers, n_input=n_input, **kwargs)
 
-    pretrain_dict = model_zoo.load_url(model_urls[backbone])
+    # pretrain_dict = model_zoo.load_url(model_urls[backbone])
+    pretrain_dict = torch.load('.cache/torch/hub/checkpoints/resnet50-19c8e357.pth')
+
+
     try:
         model.load_state_dict(pretrain_dict,strict=False)
     except:
