@@ -265,6 +265,16 @@ def main():
                 valid_epoch_total_edg += weighted_loss_edg
                 valid_epoch_total_model += loss
 
+                # Add images to tensorboard
+                if step % args.log_interval == 0:
+
+                    in_imgs_rgb = bgr_to_rgb(valid_in_imgs.clone().detach())
+                    writer.add_images('Input Img (valid set)', in_imgs_rgb, epoch * len(valid_dataloader) + step)
+
+                    writer.add_images('Input Mask (valid set)', valid_in_masks, epoch * len(valid_dataloader) + step)
+                    writer.add_images('Output Mask (valid set)', valid_out_masks, epoch * len(valid_dataloader) + step)
+                    writer.add_images('Input Edge (valid set)', valid_in_edges, epoch * len(valid_dataloader) + step)
+                    writer.add_images('Output Edge (valid set)', valid_out_edges, epoch * len(valid_dataloader) + step)
 
         # --------------
         #  Log Progress (for epoch)
@@ -288,13 +298,13 @@ def main():
             writer.add_scalar("Epoch LearningRate", lr_scheduler.get_last_lr()[0],
                               epoch)
 
-            in_imgs_rgb = bgr_to_rgb(train_in_imgs.clone().detach())
-            writer.add_images('Epoch Input Img (train set)', in_imgs_rgb, epoch)
+            # in_imgs_rgb = bgr_to_rgb(train_in_imgs.clone().detach())
+            # writer.add_images('Epoch Input Img (train set)', in_imgs_rgb, epoch)
 
-            writer.add_images('Epoch Input Mask (train set)', train_in_masks, epoch)
-            writer.add_images('Epoch Output Mask (train set)', train_out_masks, epoch)
-            writer.add_images('Epoch Input Edge (train set)', train_in_edges, epoch)
-            writer.add_images('Epoch Output Edge (train set)', train_out_edges, epoch)
+            # writer.add_images('Epoch Input Mask (train set)', train_in_masks, epoch)
+            # writer.add_images('Epoch Output Mask (train set)', train_out_masks, epoch)
+            # writer.add_images('Epoch Input Edge (train set)', train_in_edges, epoch)
+            # writer.add_images('Epoch Output Edge (train set)', train_out_edges, epoch)
 
 
         # Validation loss average for epoch
@@ -312,13 +322,13 @@ def main():
                   f"[Epoch Image-scale Loss {valid_epoch_avg_clf:.3e}]"
                   f"")
 
-            in_imgs_rgb = bgr_to_rgb(valid_in_imgs.clone().detach())
-            writer.add_images('Epoch Input Img (valid set)', in_imgs_rgb, epoch)
+            # in_imgs_rgb = bgr_to_rgb(valid_in_imgs.clone().detach())
+            # writer.add_images('Epoch Input Img (valid set)', in_imgs_rgb, epoch)
 
-            writer.add_images('Epoch Input Mask (valid set)', valid_in_masks, epoch)
-            writer.add_images('Epoch Output Mask (valid set)', valid_out_masks, epoch)
-            writer.add_images('Epoch Input Edge (valid set)', valid_in_edges, epoch)
-            writer.add_images('Epoch Output Edge (valid set)', valid_out_edges, epoch)
+            # writer.add_images('Epoch Input Mask (valid set)', valid_in_masks, epoch)
+            # writer.add_images('Epoch Output Mask (valid set)', valid_out_masks, epoch)
+            # writer.add_images('Epoch Input Edge (valid set)', valid_in_edges, epoch)
+            # writer.add_images('Epoch Output Edge (valid set)', valid_out_edges, epoch)
 
         # Write train and validation loss
         writer.add_scalars('Epoch Loss/Total Loss', 
