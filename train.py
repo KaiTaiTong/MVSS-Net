@@ -225,45 +225,45 @@ def main():
 
             for step, data in enumerate(valid_dataloader):
                 
-                    # Read from train_dataloader
-                    valid_in_imgs = Variable(data["input"].type(Tensor))
-                    valid_in_masks = Variable(data["mask"].type(Tensor))
-                    valid_in_edges = Variable(data["edge"].type(Tensor))
-                    valid_in_labels = Variable(data["label"].type(Tensor))
+                # Read from train_dataloader
+                valid_in_imgs = Variable(data["input"].type(Tensor))
+                valid_in_masks = Variable(data["mask"].type(Tensor))
+                valid_in_edges = Variable(data["edge"].type(Tensor))
+                valid_in_labels = Variable(data["label"].type(Tensor))
 
-                    # Prediction
-                    valid_out_edges, valid_out_masks = model(valid_in_imgs)
-                    valid_out_edges = torch.sigmoid(valid_out_edges)
-                    valid_out_masks = torch.sigmoid(valid_out_masks)
+                # Prediction
+                valid_out_edges, valid_out_masks = model(valid_in_imgs)
+                valid_out_edges = torch.sigmoid(valid_out_edges)
+                valid_out_masks = torch.sigmoid(valid_out_masks)
 
-                    # Pixel-scale loss
-                    loss_seg = dice_loss(valid_in_masks, valid_out_masks)
+                # Pixel-scale loss
+                loss_seg = dice_loss(valid_in_masks, valid_out_masks)
 
-                    # Edge loss
-                    loss_edg = dice_loss(valid_in_edges, valid_out_edges)
+                # Edge loss
+                loss_edg = dice_loss(valid_in_edges, valid_out_edges)
 
-                    # Image-scale loss (with GMP)
-                    gmp = nn.MaxPool2d(args.image_size)
-                    out_labels = gmp(valid_out_masks).squeeze()
-                    loss_clf = criterion_clf(valid_in_labels, out_labels)
+                # Image-scale loss (with GMP)
+                gmp = nn.MaxPool2d(args.image_size)
+                out_labels = gmp(valid_out_masks).squeeze()
+                loss_clf = criterion_clf(valid_in_labels, out_labels)
 
-                    # Total loss
-                    alpha = args.lambda_seg
-                    beta = args.lambda_clf
+                # Total loss
+                alpha = args.lambda_seg
+                beta = args.lambda_clf
 
-                    weighted_loss_seg = alpha * loss_seg
-                    weighted_loss_clf = beta * loss_clf
-                    weighted_loss_edg = (1.0 - alpha - beta) * loss_edg
+                weighted_loss_seg = alpha * loss_seg
+                weighted_loss_clf = beta * loss_clf
+                weighted_loss_edg = (1.0 - alpha - beta) * loss_edg
 
-                    loss = weighted_loss_seg + weighted_loss_clf + weighted_loss_edg
+                loss = weighted_loss_seg + weighted_loss_clf + weighted_loss_edg
 
-                    # log losses for epoch
-                    valid_epoch_steps += 1
+                # log losses for epoch
+                valid_epoch_steps += 1
 
-                    valid_epoch_total_seg += weighted_loss_seg
-                    valid_epoch_total_clf += weighted_loss_clf
-                    valid_epoch_total_edg += weighted_loss_edg
-                    valid_epoch_total_model += loss
+                valid_epoch_total_seg += weighted_loss_seg
+                valid_epoch_total_clf += weighted_loss_clf
+                valid_epoch_total_edg += weighted_loss_edg
+                valid_epoch_total_model += loss
 
 
         # --------------
